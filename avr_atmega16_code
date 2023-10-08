@@ -23,6 +23,7 @@ Data Stack size         : 256
 #include <mega16.h>
 #include <delay.h>
 #include <alcd.h>
+#include <stdio.h>
 
 unsigned char menu = 0;
 unsigned char sub_menu1 = 0;
@@ -41,6 +42,7 @@ void timer_function(void);
 void update_time(void);
 void runLED_PORTD(unsigned delayTime);
 
+
 void main(void){
     DDRA = 0xFF; 
     DDRB = 0x00; 
@@ -48,7 +50,12 @@ void main(void){
     DDRD = 0xFF; 
 
     lcd_init(16);
-
+    
+    // Tambahkan watermark di awal
+    lcd_clear();
+    lcd_puts("SELAMAT DATANG");
+    delay_ms(200);
+    
     display_menu();
 
     while (1)
@@ -125,9 +132,19 @@ void display_menu(void)
     lcd_clear();
     switch (menu)
     {
-        case 0: lcd_puts("1. Date"); break;
-        case 1: lcd_puts("2. LED"); break;
-        case 2: lcd_puts("3. Timer"); break;
+        case 0: 
+            lcd_puts("> 1. Date");
+            lcd_gotoxy(0,1);
+            lcd_puts("  2. LED");
+            break;
+        case 1: 
+            lcd_puts("> 2. LED");
+            lcd_gotoxy(0,1);
+            lcd_puts("  3. Timer");
+            break;
+        case 2:
+            lcd_puts("> 3. Timer");
+            break;
     }
 }
 
@@ -136,9 +153,19 @@ void display_submenu_LED(void)
     lcd_clear();
     switch (sub_menu1)
     {
-        case 0: lcd_puts("1. Multi Output"); break;
-        case 1: lcd_puts("2. Blinky LED"); break;
-        case 2: lcd_puts("3. Running LED"); break;
+        case 0:
+            lcd_puts("> 1. Multi Output");
+            lcd_gotoxy(0,1);
+            lcd_puts("  2. Blinky LED");
+            break;
+        case 1:
+            lcd_puts("> 2. Blinky LED");
+            lcd_gotoxy(0,1);
+            lcd_puts("  3. Running LED");
+            break;
+        case 2:
+            lcd_puts("> 3. Running LED");
+            break;
     }
 }
 
@@ -150,11 +177,11 @@ void blinky_LED(void)
         lcd_clear();
         lcd_puts("Blinky LED ON");
         PORTC.0 = 1;
-        delay_ms(500);
+        delay_ms(50);
         lcd_clear();
         lcd_puts("Blinky LED OFF");
         PORTC.0 = 0;
-        delay_ms(500);
+        delay_ms(50);
     }
 }
 
@@ -162,7 +189,8 @@ void display_date(void)
 {
     lcd_clear();
     lcd_puts("Today's Date: ");
-    lcd_puts("DD/MM/YYYY"); 
+    lcd_gotoxy(0,1);
+    lcd_puts("08/10/2023"); 
 }
 
 void timer_function(void)
@@ -176,7 +204,7 @@ void timer_function(void)
         lcd_putchar(':');
         lcd_putchar((seconds / 10) + '0');  
         lcd_putchar((seconds % 10) + '0');  
-        delay_ms(1000); 
+        delay_ms(60); 
         update_time();
     }
     
@@ -219,29 +247,36 @@ void runLED_PORTD(unsigned int delayTime)
             lcd_puts("delay = 1000ms");
         }
 
+        PORTD = led_position;
+
         if (direction == 0)
         {
-            PORTD = led_position;
-            led_position <<= 1;
-
             if (led_position == 0x80)
             {
+                delay_ms(delayTime); // tambahkan ini
                 direction = 1;
+            }
+            else
+            {
+                led_position <<= 1;
             }
         }
         else
         {
-            led_position >>= 1;
-            PORTD = led_position;
-
             if (led_position == 0x01)
             {
+                delay_ms(delayTime); // tambahkan ini
                 direction = 0;
+            }
+            else
+            {
+                led_position >>= 1;
             }
         }
         delay_ms(delayTime);
     }
 }
+
 
 void multi_output_function(void)
 {
