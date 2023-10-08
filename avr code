@@ -1,0 +1,268 @@
+/*******************************************************
+This program was created by the CodeWizardAVR V3.40 
+Automatic Program Generator
+© Copyright 1998-2020 Pavel Haiduc, HP InfoTech S.R.L.
+http://www.hpinfotech.ro
+
+Project : 
+Version : 
+Date    : 24/09/2023
+Author  : 
+Company : 
+Comments: 
+
+
+Chip type               : ATmega16
+Program type            : Application
+AVR Core Clock frequency: 16,000000 MHz
+Memory model            : Small
+External RAM size       : 0
+Data Stack size         : 256
+*******************************************************/
+
+#include <mega16.h>
+#include <delay.h>
+#include <alcd.h>
+
+unsigned char menu = 0;
+unsigned char sub_menu1 = 0;
+unsigned char in_submenu = 0;
+
+unsigned char minutes = 1;
+unsigned char seconds = 0;
+
+void check_buttons(void);
+void display_menu(void);
+void display_submenu_LED(void);
+void multi_output_function(void);
+void blinky_LED(void);
+void display_date(void);
+void timer_function(void);
+void update_time(void);
+void runLED_PORTD(unsigned delayTime);
+
+void main(void){
+    DDRA = 0xFF; 
+    DDRB = 0x00; 
+    DDRC = 0x01; 
+    DDRD = 0xFF; 
+
+    lcd_init(16);
+
+    display_menu();
+
+    while (1)
+    {
+        check_buttons();
+        delay_ms(50); 
+    }
+}
+
+void check_buttons(void)
+{
+    if (!PINB.0) 
+    {
+        if (in_submenu == 0)
+        {
+            if (menu > 0) menu--;
+            display_menu();
+        }
+        else if (in_submenu == 1)
+        {
+            if (sub_menu1 > 0) sub_menu1--;
+            display_submenu_LED();
+        }
+    }
+    else if (!PINB.1)
+    {
+        if (in_submenu == 0)
+        {
+            if (menu < 2) menu++;
+            display_menu();
+        }
+        else if (in_submenu == 1)
+        {
+            if (sub_menu1 < 2) sub_menu1++;
+            display_submenu_LED();
+        }
+    }
+    else if (!PINB.2)
+    {
+        if (in_submenu == 0)
+        {
+            switch (menu)
+            {
+                case 0: display_date(); break;
+                case 1: 
+                    in_submenu = 1;
+                    display_submenu_LED();
+                    break;
+                case 2: timer_function(); break;
+            }
+        }
+        else if (in_submenu == 1)
+        {
+            switch (sub_menu1)
+            {
+                case 0: multi_output_function(); break;
+                case 1: blinky_LED(); break;
+                case 2: runLED_PORTD(500); break; 
+            }
+        }
+    }
+    else if (!PINB.3) 
+    {
+        if (in_submenu == 1)
+        {
+            in_submenu = 0;
+            display_menu();
+        }
+    }
+}
+
+void display_menu(void)
+{
+    lcd_clear();
+    switch (menu)
+    {
+        case 0: lcd_puts("1. Date"); break;
+        case 1: lcd_puts("2. LED"); break;
+        case 2: lcd_puts("3. Timer"); break;
+    }
+}
+
+void display_submenu_LED(void)
+{
+    lcd_clear();
+    switch (sub_menu1)
+    {
+        case 0: lcd_puts("1. Multi Output"); break;
+        case 1: lcd_puts("2. Blinky LED"); break;
+        case 2: lcd_puts("3. Running LED"); break;
+    }
+}
+
+void blinky_LED(void)
+{
+    unsigned char i; // Deklarasi i di luar loop
+    for (i = 0; i < 5; i++)
+    {
+        lcd_clear();
+        lcd_puts("Blinky LED ON");
+        PORTC.0 = 1;
+        delay_ms(500);
+        lcd_clear();
+        lcd_puts("Blinky LED OFF");
+        PORTC.0 = 0;
+        delay_ms(500);
+    }
+}
+
+void display_date(void)
+{
+    lcd_clear();
+    lcd_puts("Today's Date: ");
+    lcd_puts("DD/MM/YYYY"); 
+}
+
+void timer_function(void)
+{
+    while(minutes > 0 || seconds > 0)
+    {
+        lcd_clear();
+        lcd_gotoxy(0,0);
+        lcd_putchar((minutes / 10) + '0');  
+        lcd_putchar((minutes % 10) + '0');  
+        lcd_putchar(':');
+        lcd_putchar((seconds / 10) + '0');  
+        lcd_putchar((seconds % 10) + '0');  
+        delay_ms(1000); 
+        update_time();
+    }
+    
+    lcd_clear();
+    lcd_puts("Time's Up!");
+}
+
+void update_time()
+{
+    if(seconds > 0)
+    {
+        seconds--;
+    }
+    else
+    {
+        if(minutes > 0)
+        {
+            minutes--;
+            seconds = 59;
+        }
+    }
+}
+
+void runLED_PORTD(unsigned int delayTime)
+{
+    static char direction = 0;
+    static unsigned char led_position = 0x01;
+    while(1)
+    {
+        if (!PINB.4)
+        {
+            delayTime = 50;
+            lcd_clear();
+            lcd_puts("delay = 750ms");
+        }
+        if (!PINB.5)
+        {
+            delayTime = 200;
+            lcd_clear();
+            lcd_puts("delay = 1000ms");
+        }
+
+        if (direction == 0)
+        {
+            PORTD = led_position;
+            led_position <<= 1;
+
+            if (led_position == 0x80)
+            {
+                direction = 1;
+            }
+        }
+        else
+        {
+            led_position >>= 1;
+            PORTD = led_position;
+
+            if (led_position == 0x01)
+            {
+                direction = 0;
+            }
+        }
+        delay_ms(delayTime);
+    }
+}
+
+void multi_output_function(void)
+{
+    unsigned int currentDelay = 500;
+    lcd_clear();
+    lcd_puts("running..."); 
+    while(1)
+    {
+        if (!PINB.4)
+        {
+            currentDelay = 750;
+            lcd_clear();
+            lcd_puts("delay = 750ms");
+        }
+        else if (!PINB.5)
+        {
+            currentDelay = 850;
+            lcd_clear();
+            lcd_puts("delay = 1000ms");
+            runLED_PORTD(currentDelay);
+        }
+         delay_ms(50);
+    }
+}
